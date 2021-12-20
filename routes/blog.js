@@ -1,4 +1,5 @@
 const express = require("express");
+const { render } = require("express/lib/response");
 
 const db = require("../data/database");
 
@@ -33,7 +34,7 @@ router.post("/posts", async function (req, res) {
   );
   res.redirect("/posts");
 });
-
+//view detail
 router.get("/posts/:id", async function (req, res) {
   const urlID = req.params.id;
   const [post] = await db.query(
@@ -42,21 +43,43 @@ router.get("/posts/:id", async function (req, res) {
   );
   //post is array even though we have only one value
   const postData = {
-      ...post[0],
-      date: post[0].date.toISOString(),
-      humanReadableDate : post[0].date.toLocaleDateString('en-US',{
-          weekdate: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-      }
-
-      ),
-  }
+    ...post[0],
+    date: post[0].date.toISOString(),
+    humanReadableDate: post[0].date.toLocaleDateString("en-US", {
+      weekdate: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }),
+  };
 
   if (!post || post.length === 0) return res.status(404).render("404");
 
   res.render("post-detail", { post: postData });
 });
+//edit
+router.get("/posts/:id/edit", async function (req, res) {
+  const query = `SELECT * FROM post WHERE id = ?`;
+  const [posts] = await db.query(query, [req.params.id]);
+  res.render("update-post", { post: posts[0] });
+});
+
+router.post("/posts/:id/edit", async function (req, res) {
+  const query = `UPDATE post SET title = ?, summary = ?, body = ?
+    WHERE id = ?`;
+  await db.query(query, [
+    req.body.title,
+    req.body.summary,
+    req.body.content,
+    req.params.id,
+  ]);
+  res.redirect("/posts");
+});
+
+router.post("/posts/:id/delete", async function (req, res){
+    const query = `DELETE FROM post WHERE id = ?`;
+    await db.query(query,[req.params.id])
+    res.redirect("/posts");
+})
 
 module.exports = router;
